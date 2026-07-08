@@ -1,0 +1,8 @@
+# torch, torchaudio, torchvision, and rocm[devel] are NOT installed from here.
+# They're ROCm nightly builds and must be installed via setup.bat, e.g.:
+#   pip install --pre torch torchaudio torchvision "rocm[devel]" \
+#       --index-url https://rocm.nightlies.amd.com/v2-staging/gfx103X-dgpu/
+
+yt-dlp==2026.7.4
+demucs==4.0.1
+soundfile==0.14.0

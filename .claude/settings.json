@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(py -0p 2>$null)",
+      "PowerShell(py -3.12 --version 2>$null)",
+      "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe -c \"import torch, rocm; print\\('ok'\\)\")",
+      "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe -m pip show rocm 2>$null)",
+      "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe -c \"import torch; print\\(torch.__version__\\); print\\('hip available:', torch.cuda.is_available\\(\\)\\)\")",
+      "PowerShell(& .\\\\venv\\\\Scripts\\\\python.exe -c \"import demucs, yt_dlp; print\\('demucs ok', demucs.__file__\\); print\\('yt_dlp ok', yt_dlp.version.__version__\\)\")",
+      "PowerShell(cmd /c run.bat --setup)",
+      "PowerShell(cmd /c \"d:\\\\Users\\\\Indra\\\\Workspaces\\\\demucs\\\\run.bat\" --setup)"
+    ]
+  }
+}

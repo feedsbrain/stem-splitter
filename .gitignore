@@ -1,0 +1,16 @@
+# Virtual environment
+venv/
+
+# Data directories (contents ignored, folders kept)
+audio/*
+!audio/.gitkeep
+
+tools/*
+!tools/.gitkeep
+
+video/*
+!video/.gitkeep
+
+# Python
+__pycache__/
+*.pyc
