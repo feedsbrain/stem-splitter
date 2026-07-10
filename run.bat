@@ -104,8 +104,8 @@ REM --- Step 5: torch + rocm ---
 if !errorlevel!==0 (
     echo [OK] torch ^(ROCm build^) already installed.
 ) else (
-    echo [..] Installing torch, torchaudio, torchvision, rocm[devel] ^(this may take a while^)...
-    "%VENV_PY%" -m pip install --pre torch torchaudio torchvision "rocm[devel]" --index-url https://rocm.nightlies.amd.com/v2-staging/gfx103X-dgpu/
+    echo [..] Installing torch, torchaudio, torchvision, rocm ^(this may take a while^)...
+    "%VENV_PY%" -m pip install --pre torch torchaudio torchvision rocm --index-url https://rocm.nightlies.amd.com/v2-staging/gfx103X-dgpu/
     if errorlevel 1 (
         echo [ERROR] Failed to install torch/rocm.
         exit /b 1
