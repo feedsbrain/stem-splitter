@@ -40,6 +40,7 @@ jobs:
         run: |
           python main.py
           if ($LASTEXITCODE -ne 1) { throw "expected exit code 1, got $LASTEXITCODE" }
+          $global:LASTEXITCODE = 0
 
       - name: scripts/read_ini.py resolves stem-splitter.ini's [rocm] index_url
         run: |
