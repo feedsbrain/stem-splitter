@@ -1,6 +1,15 @@
 # Virtual environment
 venv/
 
+# build.bat output (compiled PATH launcher)
+build/
+
+# bundle.bat output (self-contained PyInstaller bundle) and its spec file
+bundle/
+
+# installer.bat output (compiled installer exe)
+installer/output/
+
 # Data directories (contents ignored, folders kept)
 audio/*
 !audio/.gitkeep

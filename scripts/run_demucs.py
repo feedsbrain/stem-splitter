@@ -1,6 +1,12 @@
 """Runs demucs.separate, replacing its torchaudio-based WAV/FLAC writer with
 soundfile so it works without torchcodec/ffmpeg-codec DLLs being present.
+
+Importable (run(argv)) so main.py can call it in-process - a frozen
+PyInstaller build's sys.executable is the app itself, not a generic Python
+interpreter, so re-exec'ing this as a subprocess would not work there.
 """
+import sys
+
 import soundfile as sf
 
 import demucs.audio as demucs_audio
@@ -26,7 +32,12 @@ def _sf_save(uri, src, sample_rate, encoding=None, bits_per_sample=None, **_kwar
 
 demucs_audio.ta.save = _sf_save
 
-from demucs.separate import main  # noqa: E402
+from demucs.separate import main as _demucs_main  # noqa: E402
+
+
+def run(argv: list[str]) -> None:
+    _demucs_main(argv)
+
 
 if __name__ == "__main__":
-    main()
+    run(sys.argv[1:])

@@ -57,6 +57,68 @@ audio\My Song\stems\2stem\vocals.wav                   - 2-stem split
 audio\My Song\stems\2stem\instrumental.wav
 ```
 
+## Building a PATH executable
+
+```
+.\build.bat
+```
+
+Compiles `build\stem-splitter.exe`, a thin launcher that forwards straight to
+this project's `venv\Scripts\python.exe` and `main.py` (the venv itself is
+never copied - run `.\run.ps1 --setup` first if you haven't). Add `build\` to
+your `PATH`, then run it from anywhere:
+
+```
+stem-splitter "<YouTube URL>"
+```
+
+`build\` is gitignored; rerun `build.bat` after moving the project folder.
+Since this launcher just forwards to the project's own `main.py`, output still
+always goes under this project's `video\`/`audio\` folders, no matter which
+directory you run `stem-splitter` from.
+
+## Bundling a redistributable executable
+
+```
+.\bundle.bat
+```
+
+Uses PyInstaller (`--onedir`) to produce a fully self-contained
+`bundle\dist\stem-splitter\` folder - Python, torch/rocm, demucs, yt-dlp, and
+ffmpeg all included. Unlike `build.bat`'s launcher, this folder doesn't need
+`venv\` to exist afterwards and can be copied elsewhere. Add
+`bundle\dist\stem-splitter\` to your `PATH`, then run it from anywhere:
+
+```
+stem-splitter "<YouTube URL>"
+```
+
+Since this exe is truly standalone, `video\`/`audio\` output folders are
+created under whatever directory you run it from (not the install folder) -
+different from `build.bat`'s launcher, which always writes under this
+project's own folders.
+
+`bundle\` is gitignored; rerun `bundle.bat` after changing dependencies.
+The bundled torch/rocm build is pinned to a specific AMD GPU architecture
+(`gfx103X-dgpu`, see `requirements.txt`), so the bundle is only portable to
+machines with a matching GPU.
+
+## Building an installer
+
+Requires [Inno Setup](https://jrsoftware.org/isinfo.php)
+(`winget install JRSoftware.InnoSetup`) and a `bundle\dist\stem-splitter\`
+built via `.\bundle.bat` first.
+
+```
+.\installer.bat
+```
+
+Produces `installer\output\stem-splitter-amd-rocm-gfx1030-install.exe` - a
+wizard installer (no admin rights needed) that lets the user pick a
+destination folder, optionally adds it to their `PATH`, and registers a
+proper uninstaller in "Apps & Features". `installer\output\` is gitignored;
+`installer\stem-splitter.iss` (the Inno Setup script) is tracked.
+
 ## Cleaning up
 
 ```

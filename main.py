@@ -1,3 +1,4 @@
+import multiprocessing
 import os
 import re
 import subprocess
@@ -8,11 +9,23 @@ import numpy as np
 import soundfile as sf
 import yt_dlp
 
-ROOT = Path(__file__).resolve().parent
-VIDEO_DIR = ROOT / "video"
-AUDIO_DIR = ROOT / "audio"
-TOOLS_DIR = ROOT / "tools"
-SCRIPTS_DIR = ROOT / "scripts"
+from scripts.run_demucs import run as run_demucs
+
+FROZEN = getattr(sys, "frozen", False)
+# Frozen (PyInstaller) build: bundled resources (ffmpeg) live next to the
+# exe; output goes under the current working directory, like a normal
+# PATH-installed CLI tool. Running from source: everything is project-root
+# relative, same as always.
+if FROZEN:
+    APP_DIR = Path(sys.executable).resolve().parent
+    OUTPUT_ROOT = Path.cwd()
+else:
+    APP_DIR = Path(__file__).resolve().parent
+    OUTPUT_ROOT = APP_DIR
+
+VIDEO_DIR = OUTPUT_ROOT / "video"
+AUDIO_DIR = OUTPUT_ROOT / "audio"
+TOOLS_DIR = APP_DIR / "tools"
 FFMPEG = TOOLS_DIR / "ffmpeg.exe"
 
 DEMUCS_MODEL = "htdemucs_ft"
@@ -68,11 +81,12 @@ def extract_audio(video_file: Path, title: str) -> Path:
 
 def separate_stems(wav_path: Path, title: str) -> None:
     stems_dir = AUDIO_DIR / title / "stems"
-    env = os.environ.copy()
-    env["PATH"] = str(TOOLS_DIR) + os.pathsep + env.get("PATH", "")
-    subprocess.run(
+    tools_dir_str = str(TOOLS_DIR)
+    if tools_dir_str not in os.environ.get("PATH", "").split(os.pathsep):
+        os.environ["PATH"] = tools_dir_str + os.pathsep + os.environ.get("PATH", "")
+
+    run_demucs(
         [
-            sys.executable, str(SCRIPTS_DIR / "run_demucs.py"),
             "-n", DEMUCS_MODEL,
             "-d", "cuda",
             "--shifts", DEMUCS_SHIFTS,
@@ -80,9 +94,7 @@ def separate_stems(wav_path: Path, title: str) -> None:
             "--float32",
             "-o", str(stems_dir),
             str(wav_path),
-        ],
-        check=True,
-        env=env,
+        ]
     )
 
 
@@ -105,8 +117,9 @@ def create_two_stem_mix(stems_dir: Path, title: str) -> None:
 
 
 def main() -> None:
+    prog = "stem-splitter" if FROZEN else "python main.py"
     if len(sys.argv) != 2:
-        print('Usage: python main.py "<YouTube URL>"')
+        print(f'Usage: {prog} "<YouTube URL>"')
         sys.exit(1)
 
     url = sys.argv[1]
@@ -138,4 +151,6 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    if FROZEN:
+        multiprocessing.freeze_support()
     main()
