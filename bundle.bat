@@ -54,6 +54,7 @@ echo [..] Running PyInstaller ^(this bundles ~3-4 GB of torch/rocm - can take se
     --add-binary "%ROOT%\tools\ffmpeg.exe;tools" ^
     --add-binary "%ROOT%\tools\ffprobe.exe;tools" ^
     --add-data "%ROOT%\stem-splitter.ini;." ^
+    --collect-all numpy ^
     --collect-all torch ^
     --collect-all torchaudio ^
     --collect-all torchvision ^
