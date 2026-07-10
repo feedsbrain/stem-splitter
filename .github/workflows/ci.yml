@@ -54,7 +54,7 @@ jobs:
           call run.bat --help
           if not "%errorlevel%"=="1" exit /b 1
 
-      - name: build.bat / bundle.bat / installer.bat fail gracefully without a venv
+      - name: build.bat / bundle.bat / installer.bat / demucs-bundle.bat fail gracefully without a venv
         shell: cmd
         run: |
           call build.bat
@@ -62,4 +62,6 @@ jobs:
           call bundle.bat
           if not "%errorlevel%"=="1" exit /b 1
           call installer.bat
+          if not "%errorlevel%"=="1" exit /b 1
+          call demucs-bundle.bat
           if not "%errorlevel%"=="1" exit /b 1

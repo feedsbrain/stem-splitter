@@ -115,6 +115,35 @@ architecture `venv\` was set up with (`index_url` in `stem-splitter.ini`,
 default `gfx103X-dgpu`), so the bundle is only portable to machines with a
 matching GPU.
 
+## Bundling a standalone Demucs executable
+
+Requires `.\run.ps1 --setup` to have been run first (needs `venv\` with
+torch/demucs installed - `demucs-bundle.bat` doesn't install these itself).
+
+```
+.\demucs-bundle.bat
+```
+
+Same idea as [stemrollerapp/demucs-cxfreeze](https://github.com/stemrollerapp/demucs-cxfreeze):
+uses `cx_Freeze` (not PyInstaller) to freeze just Demucs+torch - not the rest
+of this app (yt-dlp, video download, 2-stem mixing) - into a single
+`bundle\demucs-cxfreeze\demucs-cxfreeze.exe`. Entry point is
+`scripts\run_demucs.py`, so it gets the same soundfile-based WAV/FLAC writer
+`main.py` uses (avoids needing torchcodec/ffmpeg-codec DLLs). Behaves like
+the demucs CLI:
+
+```
+demucs-cxfreeze -n htdemucs_ft -d cuda -o "<outdir>" "<input.wav>"
+```
+
+As with the upstream repo, ffmpeg/ffprobe and model files are **not**
+bundled - put this project's `tools\` folder on PATH before running it, and
+either let Demucs download models on first use or pass `--repo` with a
+folder of pre-downloaded ones. `bundle\` is gitignored; rerun
+`demucs-bundle.bat` after changing dependencies. Like `bundle.bat`, the
+frozen torch build is whichever GPU architecture `venv\` was set up with, so
+it's only portable to machines with a matching GPU.
+
 ## Building an installer
 
 Requires [Inno Setup](https://jrsoftware.org/isinfo.php)
@@ -133,16 +162,16 @@ proper uninstaller in "Apps & Features". `installer\output\` is gitignored;
 
 ## CI / releases
 
-Two GitHub Actions workflows, both on `windows-latest` (this project is
+Three GitHub Actions workflows, all on `windows-latest` (this project is
 Windows-only):
 
 - **[.github/workflows/ci.yml](.github/workflows/ci.yml)** - runs on every
   push/PR. Installs `requirements.txt` (pulling a small stock CPU torch via
   demucs's own dependency, *not* the ~3.6GB ROCm nightly build) and verifies
   `main.py`/`scripts\*.py` import and run cleanly, `stem-splitter.ini` parses,
-  and `run.bat`/`build.bat`/`bundle.bat`/`installer.bat` all parse and fail
-  gracefully without a `venv\`. Fast (a couple minutes), cheap, no GPU/ROCm
-  needed.
+  and `run.bat`/`build.bat`/`bundle.bat`/`installer.bat`/`demucs-bundle.bat`
+  all parse and fail gracefully without a `venv\`. Fast (a couple minutes),
+  cheap, no GPU/ROCm needed.
 - **[.github/workflows/release.yml](.github/workflows/release.yml)** - runs
   on every published GitHub Release (or manually via "Run workflow", which
   builds but skips the upload step). Does the real, expensive build: `run.bat
@@ -154,6 +183,13 @@ Windows-only):
   what this build needs (venv + bundle + installer output add up to
   ~9-10GB) - if it starts failing on disk space, a larger or self-hosted
   runner may be needed.
+- **[.github/workflows/release-demucs.yml](.github/workflows/release-demucs.yml)** -
+  same trigger as `release.yml`, but builds the standalone `demucs-cxfreeze`
+  bundle instead: `run.bat --setup`, `demucs-bundle.bat`, zips
+  `bundle\demucs-cxfreeze\` into `demucs-cxfreeze-rocm.zip`, and uploads it to
+  the release. Independent of `release.yml` (different job, different
+  tool - `cx_Freeze` instead of PyInstaller+Inno Setup) so a failure in one
+  doesn't block the other. Same disk space caveat as `release.yml`.
 
 ## Cleaning up
 

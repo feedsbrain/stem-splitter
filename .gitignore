@@ -23,3 +23,6 @@ video/*
 # Python
 __pycache__/
 *.pyc
+
+# cxfreeze
+UNKNOWN.egg-info/

@@ -1,0 +1,65 @@
+name: Release demucs-cxfreeze
+
+# Standalone build: venv + ROCm/torch download + demucs-bundle.bat
+# (cx_Freeze), zipped and uploaded to the GitHub Release. Independent of
+# release.yml's installer build (different artifact, different tool -
+# cx_Freeze instead of PyInstaller+Inno Setup) so a failure in one doesn't
+# block the other.
+#
+# Runs on every published release. Can also be triggered manually
+# (workflow_dispatch) to test the build without uploading anything, since the
+# upload step only runs for a real "release" event.
+#
+# Same disk space caveat as release.yml: standard GitHub-hosted windows-latest
+# runners have limited free disk space, tight against venv + bundle (~5-6GB
+# with the ROCm torch build). Consider a larger or self-hosted runner if this
+# starts failing on disk space.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-demucs-cxfreeze:
+    runs-on: windows-latest
+    timeout-minutes: 60
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Disk space before build
+        run: Get-PSDrive C | Select-Object Used, Free
+
+      - name: run.bat --setup (venv + ROCm/torch + demucs/yt-dlp + ffmpeg)
+        run: .\run.bat --setup
+
+      - name: Disk space after setup
+        run: Get-PSDrive C | Select-Object Used, Free
+
+      - name: demucs-bundle.bat (cx_Freeze)
+        run: .\demucs-bundle.bat
+
+      - name: Zip the frozen bundle
+        run: Compress-Archive -Path "bundle\demucs-cxfreeze\*" -DestinationPath "demucs-cxfreeze-rocm.zip"
+
+      - name: Upload zip to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "demucs-cxfreeze-rocm.zip" --clobber
+
+      - name: Upload zip as a workflow artifact (manual runs)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: demucs-cxfreeze-rocm
+          path: demucs-cxfreeze-rocm.zip
+          retention-days: 7
