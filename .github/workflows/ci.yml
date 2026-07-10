@@ -1,0 +1,65 @@
+name: CI
+
+# Lightweight check on every push/PR: install deps with a normal (small,
+# stock CPU) torch build via demucs's own dependency - NOT the ~3.6GB ROCm
+# nightly build run.bat --setup pulls - and verify main.py/scripts import
+# and run cleanly. Catches import/wiring regressions fast and cheaply.
+# The full build (venv + ROCm torch + bundle + installer) only runs on
+# release - see release.yml.
+
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lightweight-check:
+    runs-on: windows-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies (stock CPU torch via demucs, not ROCm)
+        run: pip install -r requirements.txt
+
+      - name: Compile-check Python sources
+        run: python -m py_compile main.py scripts/run_demucs.py scripts/read_ini.py
+
+      - name: main.py imports and loads config cleanly
+        run: python -c "import main; print(main.AUDIO_DIR); print(main.VIDEO_DIR)"
+
+      - name: main.py prints usage and exits 1 with no args
+        run: |
+          python main.py
+          if ($LASTEXITCODE -ne 1) { throw "expected exit code 1, got $LASTEXITCODE" }
+
+      - name: scripts/read_ini.py resolves stem-splitter.ini's [rocm] index_url
+        run: |
+          $url = python scripts/read_ini.py stem-splitter.ini rocm index_url
+          if (-not $url.StartsWith("https://rocm.nightlies.amd.com/")) {
+            throw "unexpected index_url from stem-splitter.ini: '$url'"
+          }
+
+      - name: run.bat --help parses and exits 1
+        shell: cmd
+        run: |
+          call run.bat --help
+          if not "%errorlevel%"=="1" exit /b 1
+
+      - name: build.bat / bundle.bat / installer.bat fail gracefully without a venv
+        shell: cmd
+        run: |
+          call build.bat
+          if not "%errorlevel%"=="1" exit /b 1
+          call bundle.bat
+          if not "%errorlevel%"=="1" exit /b 1
+          call installer.bat
+          if not "%errorlevel%"=="1" exit /b 1

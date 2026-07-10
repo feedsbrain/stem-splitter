@@ -1,0 +1,72 @@
+name: Release
+
+# Full build (venv + ROCm/torch download + PyInstaller bundle + Inno Setup
+# installer) and upload the installer exe to the GitHub Release. This is the
+# expensive path (~3.6GB ROCm download, ~30-45 min, Windows Actions minutes
+# count 2x against your quota) - see ci.yml for the cheap on-push check.
+#
+# Runs on every published release. Can also be triggered manually
+# (workflow_dispatch) to test the build without uploading anything, since the
+# upload step only runs for a real "release" event.
+#
+# Note: standard GitHub-hosted windows-latest runners have a limited amount
+# of free disk space, which is tight against what this build needs (venv +
+# bundle + installer output can add up to ~9-10GB). If this starts failing
+# on disk space, consider a larger runner or a self-hosted one.
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-installer:
+    runs-on: windows-latest
+    timeout-minutes: 90
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Disk space before build
+        run: Get-PSDrive C | Select-Object Used, Free
+
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: run.bat --setup (venv + ROCm/torch + demucs/yt-dlp + ffmpeg)
+        run: .\run.bat --setup
+
+      - name: Disk space after setup
+        run: Get-PSDrive C | Select-Object Used, Free
+
+      - name: bundle.bat (PyInstaller --onedir)
+        run: .\bundle.bat
+
+      - name: Free disk before installer step
+        run: |
+          Remove-Item -Recurse -Force "bundle\work" -ErrorAction SilentlyContinue
+          Get-PSDrive C | Select-Object Used, Free
+
+      - name: installer.bat (Inno Setup)
+        run: .\installer.bat
+
+      - name: Upload installer to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "${{ github.event.release.tag_name }}" "installer\output\stem-splitter-rocm-install.exe" --clobber
+
+      - name: Upload installer as a workflow artifact (manual runs)
+        if: github.event_name != 'release'
+        uses: actions/upload-artifact@v4
+        with:
+          name: stem-splitter-rocm-install
+          path: installer\output\stem-splitter-rocm-install.exe
+          retention-days: 7

@@ -131,6 +131,30 @@ destination folder, optionally adds it to their `PATH`, and registers a
 proper uninstaller in "Apps & Features". `installer\output\` is gitignored;
 `installer\stem-splitter.iss` (the Inno Setup script) is tracked.
 
+## CI / releases
+
+Two GitHub Actions workflows, both on `windows-latest` (this project is
+Windows-only):
+
+- **[.github/workflows/ci.yml](.github/workflows/ci.yml)** - runs on every
+  push/PR. Installs `requirements.txt` (pulling a small stock CPU torch via
+  demucs's own dependency, *not* the ~3.6GB ROCm nightly build) and verifies
+  `main.py`/`scripts\*.py` import and run cleanly, `stem-splitter.ini` parses,
+  and `run.bat`/`build.bat`/`bundle.bat`/`installer.bat` all parse and fail
+  gracefully without a `venv\`. Fast (a couple minutes), cheap, no GPU/ROCm
+  needed.
+- **[.github/workflows/release.yml](.github/workflows/release.yml)** - runs
+  on every published GitHub Release (or manually via "Run workflow", which
+  builds but skips the upload step). Does the real, expensive build: `run.bat
+  --setup` (downloads the full ROCm/torch build), `bundle.bat`,
+  `installer.bat`, then uploads `stem-splitter-rocm-install.exe` to the
+  release with `gh release upload`. Takes roughly 30-45 minutes and counts
+  2x against your Actions minutes quota (Windows runners). Standard
+  GitHub-hosted runners have limited free disk space, which is tight against
+  what this build needs (venv + bundle + installer output add up to
+  ~9-10GB) - if it starts failing on disk space, a larger or self-hosted
+  runner may be needed.
+
 ## Cleaning up
 
 ```
