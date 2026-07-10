@@ -20,7 +20,7 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 PrivilegesRequired=lowest
 OutputDir=output
-OutputBaseFilename=stem-splitter-amd-rocm-gfx1030-install
+OutputBaseFilename=stem-splitter-rocm-install
 Compression=lzma2/fast
 SolidCompression=yes
 ArchitecturesAllowed=x64compatible
@@ -36,7 +36,10 @@ Name: "english"; MessagesFile: "compiler:Default.isl"
 Name: "envPath"; Description: "Add {#MyAppName} to my PATH (lets you run ""stem-splitter"" from any terminal)"; Flags: checkedonce
 
 [Files]
-Source: "{#BundleDir}\*"; DestDir: "{app}"; Flags: recursesubdirs ignoreversion
+Source: "{#BundleDir}\*"; DestDir: "{app}"; Excludes: "stem-splitter.ini"; Flags: recursesubdirs ignoreversion
+; Installed once and left alone on upgrades, so a user's customized
+; audio_dir/video_dir survive reinstalling/upgrading.
+Source: "{#BundleDir}\stem-splitter.ini"; DestDir: "{app}"; Flags: onlyifdoesntexist
 
 [Code]
 const

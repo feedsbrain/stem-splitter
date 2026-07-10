@@ -1,6 +1,6 @@
 @echo off
 REM Compiles installer\stem-splitter.iss (Inno Setup) into
-REM installer\output\stem-splitter-amd-rocm-gfx1030-install.exe - a wizard
+REM installer\output\stem-splitter-rocm-install.exe - a wizard
 REM installer that copies the bundle.bat output to a user-chosen folder and
 REM optionally adds it to PATH. Requires bundle.bat to have been run first,
 REM and Inno Setup installed (winget install JRSoftware.InnoSetup).

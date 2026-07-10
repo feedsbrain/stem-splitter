@@ -1,3 +1,4 @@
+import configparser
 import multiprocessing
 import os
 import re
@@ -23,10 +24,41 @@ else:
     APP_DIR = Path(__file__).resolve().parent
     OUTPUT_ROOT = APP_DIR
 
-VIDEO_DIR = OUTPUT_ROOT / "video"
-AUDIO_DIR = OUTPUT_ROOT / "audio"
+CONFIG_FILE = APP_DIR / "stem-splitter.ini"
 TOOLS_DIR = APP_DIR / "tools"
 FFMPEG = TOOLS_DIR / "ffmpeg.exe"
+
+
+def _resolve_configured_dir(raw: str, default: Path) -> Path:
+    raw = raw.strip()
+    if not raw:
+        return default
+    # Relative paths are anchored to the config file's own folder (stable
+    # regardless of the current working directory), not OUTPUT_ROOT.
+    path = Path(os.path.expandvars(raw)).expanduser()
+    return path if path.is_absolute() else APP_DIR / path
+
+
+def _load_output_dirs() -> tuple[Path, Path]:
+    audio_dir = OUTPUT_ROOT / "audio"
+    video_dir = OUTPUT_ROOT / "video"
+    if not CONFIG_FILE.exists():
+        return audio_dir, video_dir
+
+    # interpolation=None: values may contain literal '%USERPROFILE%'-style
+    # Windows env var references, which configparser's default
+    # interpolation would otherwise misparse as its own '%(name)s' syntax.
+    parser = configparser.ConfigParser(interpolation=None)
+    # utf-8-sig transparently strips a BOM if present - Notepad and some
+    # other Windows editors write one when saving as UTF-8.
+    parser.read(CONFIG_FILE, encoding="utf-8-sig")
+    if parser.has_section("paths"):
+        audio_dir = _resolve_configured_dir(parser.get("paths", "audio_dir", fallback=""), audio_dir)
+        video_dir = _resolve_configured_dir(parser.get("paths", "video_dir", fallback=""), video_dir)
+    return audio_dir, video_dir
+
+
+AUDIO_DIR, VIDEO_DIR = _load_output_dirs()
 
 DEMUCS_MODEL = "htdemucs_ft"
 DEMUCS_SHIFTS = "2"

@@ -32,6 +32,12 @@ This creates a virtual environment in `venv\`, installs PyTorch/torchaudio/torch
 with ROCm support, installs the packages in `requirements.txt` (`yt-dlp`, `demucs`,
 `soundfile`), and downloads a portable `ffmpeg`/`ffprobe` into `tools\`.
 
+The ROCm package index used for the PyTorch install targets `gfx103X-dgpu`
+(RDNA2, e.g. RX 6000 series) by default - edit `index_url` under `[rocm]` in
+`stem-splitter.ini` if you have a different AMD GPU (see the comments in
+that file for other targets). Only read the first time `--setup` installs
+torch; delete `venv\` and rerun `--setup` to pick up a change.
+
 ## Usage
 
 ```
@@ -79,15 +85,20 @@ directory you run `stem-splitter` from.
 
 ## Bundling a redistributable executable
 
+Requires `.\run.ps1 --setup` to have been run first (needs `venv\` and
+`tools\ffmpeg.exe`/`ffprobe.exe` - `bundle.bat` doesn't download these
+itself, only packages what's already there).
+
 ```
 .\bundle.bat
 ```
 
 Uses PyInstaller (`--onedir`) to produce a fully self-contained
-`bundle\dist\stem-splitter\` folder - Python, torch/rocm, demucs, yt-dlp, and
-ffmpeg all included. Unlike `build.bat`'s launcher, this folder doesn't need
-`venv\` to exist afterwards and can be copied elsewhere. Add
-`bundle\dist\stem-splitter\` to your `PATH`, then run it from anywhere:
+`bundle\dist\stem-splitter\` folder - Python, torch/rocm, demucs, yt-dlp,
+ffmpeg, and `stem-splitter.ini` all included. Unlike `build.bat`'s launcher,
+this folder doesn't need `venv\` to exist afterwards and can be copied
+elsewhere. Add `bundle\dist\stem-splitter\` to your `PATH`, then run it from
+anywhere:
 
 ```
 stem-splitter "<YouTube URL>"
@@ -98,10 +109,11 @@ created under whatever directory you run it from (not the install folder) -
 different from `build.bat`'s launcher, which always writes under this
 project's own folders.
 
-`bundle\` is gitignored; rerun `bundle.bat` after changing dependencies.
-The bundled torch/rocm build is pinned to a specific AMD GPU architecture
-(`gfx103X-dgpu`, see `requirements.txt`), so the bundle is only portable to
-machines with a matching GPU.
+`bundle\` is gitignored; rerun `bundle.bat` after changing dependencies or
+`stem-splitter.ini`. The bundled torch/rocm build is whichever GPU
+architecture `venv\` was set up with (`index_url` in `stem-splitter.ini`,
+default `gfx103X-dgpu`), so the bundle is only portable to machines with a
+matching GPU.
 
 ## Building an installer
 
@@ -113,7 +125,7 @@ built via `.\bundle.bat` first.
 .\installer.bat
 ```
 
-Produces `installer\output\stem-splitter-amd-rocm-gfx1030-install.exe` - a
+Produces `installer\output\stem-splitter-rocm-install.exe` - a
 wizard installer (no admin rights needed) that lets the user pick a
 destination folder, optionally adds it to their `PATH`, and registers a
 proper uninstaller in "Apps & Features". `installer\output\` is gitignored;
@@ -135,3 +147,21 @@ Demucs settings can be tweaked at the top of `main.py`:
 - `DEMUCS_MODEL` - model name (default `htdemucs_ft`)
 - `DEMUCS_SHIFTS` - number of random shifts for prediction averaging (default `2`)
 - `DEMUCS_OVERLAP` - overlap between prediction windows (default `0.5`)
+
+### Output folder locations
+
+`stem-splitter.ini`, next to `main.py` (or next to `stem-splitter.exe` for
+`build.bat`/`bundle.bat`/the installer), controls where `video\` and `audio\`
+output go:
+
+```ini
+[paths]
+audio_dir = %USERPROFILE%\Music\stem-splitter
+video_dir = %USERPROFILE%\Videos\stem-splitter
+```
+
+Absolute paths are used as-is (`%VAR%` and `~` are expanded); relative paths
+are resolved against `stem-splitter.ini`'s own folder. Leave a value blank,
+or delete the file, to fall back to the `audio\`/`video\` defaults. Editing
+an installed copy's `stem-splitter.ini` directly is safe - reinstalling or
+upgrading via the installer won't overwrite an existing one.

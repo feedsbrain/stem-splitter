@@ -100,12 +100,21 @@ REM --- Step 4: keep pip current ---
 "%VENV_PY%" -m pip install --upgrade pip >nul
 
 REM --- Step 5: torch + rocm ---
+set "ROCM_INDEX_URL=https://rocm.nightlies.amd.com/v2-staging/gfx103X-dgpu/"
+set "CONFIG_FILE=%PROJECT_DIR%stem-splitter.ini"
+if exist "%CONFIG_FILE%" (
+    set "ROCM_URL_FROM_INI="
+    for /f "usebackq delims=" %%U in (`cmd /c ""%VENV_PY%" "%PROJECT_DIR%scripts\read_ini.py" "%CONFIG_FILE%" rocm index_url"`) do set "ROCM_URL_FROM_INI=%%U"
+    if defined ROCM_URL_FROM_INI set "ROCM_INDEX_URL=!ROCM_URL_FROM_INI!"
+)
+echo [..] Using ROCm package index: %ROCM_INDEX_URL%
+
 "%VENV_PY%" -c "import torch; assert 'rocm' in torch.__version__.lower()" >nul 2>&1
 if !errorlevel!==0 (
     echo [OK] torch ^(ROCm build^) already installed.
 ) else (
     echo [..] Installing torch, torchaudio, torchvision, rocm ^(this may take a while^)...
-    "%VENV_PY%" -m pip install --pre torch torchaudio torchvision rocm --index-url https://rocm.nightlies.amd.com/v2-staging/gfx103X-dgpu/
+    "%VENV_PY%" -m pip install --pre torch torchaudio torchvision rocm --index-url %ROCM_INDEX_URL%
     if errorlevel 1 (
         echo [ERROR] Failed to install torch/rocm.
         exit /b 1
