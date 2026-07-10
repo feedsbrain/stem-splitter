@@ -51,13 +51,19 @@ if errorlevel 1 (
 
 if exist "%DIST_DIR%" rmdir /s /q "%DIST_DIR%"
 
+REM rocm_sdk/_rocm_sdk_core/_rocm_sdk_libraries_gfx103X_dgpu hold torch's
+REM actual HIP/MIOpen/rocBLAS runtime DLLs, loaded via importlib with a
+REM dynamically-computed module name (see rocm_sdk/__init__.py) - invisible
+REM to cx_Freeze's static import scanner, so they must be listed explicitly
+REM or the frozen exe silently runs CPU-only (same reason bundle.bat's
+REM PyInstaller build needs --collect-all for these).
 echo [..] Freezing Demucs+torch with cx_Freeze ^(this can take several minutes^)...
 "%CXFREEZE%" ^
     --script="%ENTRY%" ^
     --target-dir="%DIST_DIR%" ^
     --target-name=demucs-cxfreeze ^
     build_exe ^
-    --packages=torch,demucs,soundfile ^
+    --packages=torch,demucs,soundfile,rocm_sdk,_rocm_sdk_core,_rocm_sdk_libraries_gfx103X_dgpu ^
     --includes=demucs.htdemucs ^
     --include-msvcr
 if errorlevel 1 (
